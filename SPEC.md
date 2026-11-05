@@ -9,6 +9,6 @@ Build "LoRA fine-tuning with evaluation and model card". Fine-tune a small open 
 - [x] model card written
 - [x] Tests pass with one command; CI workflow runs them
 - [x] README with setup, usage, architecture and results
-- [ ] Self code review done
+- [x] Self code review done
 - [ ] Draft PR open
 

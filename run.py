@@ -1,5 +1,5 @@
 """Pretrain the base model, evaluate it zero-shot, LoRA-tune (r=2, r=8) and fully fine-tune, track every run,
-export the best adapter (adapter + merged). python run.py [--out results] [--quick]   (~16 min on 4 vCPUs)"""
+export the r=8 adapter (adapter + merged). python run.py [--out results] [--quick]   (~20 min on 4 vCPUs)"""
 import argparse
 import json
 import time
