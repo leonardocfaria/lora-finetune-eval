@@ -14,7 +14,13 @@ def test_data_disjoint_deterministic_and_stratified():
     assert {lab for _, lab in test_rows} == set(LABELS)
     corpus = pretrain_corpus()
     assert len(corpus) > 100_000
-    assert not any(d in corpus for d, _ in test_rows[:30])  # task texts are not in pretraining
+    assert not any(d in corpus for d, _ in train_rows + test_rows)  # no task text anywhere in pretraining
+
+
+def test_reexports_are_not_mislabelled():
+    from lora.data import docstrings
+    import collections
+    assert collections.Counter.__doc__.split("\n")[0] not in " ".join(docstrings("statistics"))
 
 
 def test_tokenizer_and_label_only_loss_mask():

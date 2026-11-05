@@ -1,5 +1,5 @@
 """Pretrain the base model, evaluate it zero-shot, LoRA-tune (r=2, r=8) and fully fine-tune, track every run,
-export the best adapter (adapter + merged). python run.py [--out results] [--quick]   (~5 min on 4 vCPUs)"""
+export the best adapter (adapter + merged). python run.py [--out results] [--quick]   (~16 min on 4 vCPUs)"""
 import argparse
 import json
 import time
@@ -10,6 +10,9 @@ import torch
 from lora.data import LABELS, pretrain_corpus, task_split
 from lora.finetune import evaluate, export, lora, train
 from lora.model import base_model, pretrain
+
+
+EXPORT_RANK = 8
 
 
 def log_run(path: Path, run: dict):
@@ -34,22 +37,22 @@ def main(out="results", quick=False, seed=0):
     log_run(runs, {"run": "base zero-shot", **evaluate(base, test_rows)})
 
     epochs = 2 if quick else 8
-    best = None
+    exported = None
     for r in (2, 8):
         m = lora(base, r=r, seed=seed)
         stats = train(m, train_rows, epochs=epochs, lr=2e-3, seed=seed)
         res = {"run": f"LoRA r={r}", "r": r, "lr": 2e-3, "epochs": epochs, **stats, **evaluate(m, test_rows)}
         log_run(runs, res)
-        if best is None or res["accuracy"] > best[1]["accuracy"]:
-            best = (m, res)
+        if r == EXPORT_RANK:  # fixed in advance: picking the best on the test set would tune on it
+            exported = (m, res)
     full = base_model(seed) if not quick else base_model(seed, n_embd=64, n_layer=2, n_head=4)
     full.load_state_dict(base.state_dict())
     stats = train(full, train_rows, epochs=epochs, lr=3e-4, seed=seed)
     log_run(runs, {"run": "full fine-tune", "lr": 3e-4, "epochs": epochs, **stats, **evaluate(full, test_rows)})
 
-    exp = export(best[0], out / "export")
+    exp = export(exported[0], out / "export")
     merged_eval = evaluate(exp.pop("merged"), test_rows)
-    log_run(runs, {"run": f"merged ({best[1]['run']})", **exp, **merged_eval})
+    log_run(runs, {"run": f"merged ({exported[1]['run']})", **exp, **merged_eval})
 
     rows = [json.loads(line) for line in runs.read_text().splitlines()]
     lines = [f"Task: which of {len(LABELS)} stdlib modules a docstring comes from ({', '.join(LABELS)}); "
